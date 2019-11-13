@@ -6,13 +6,16 @@ import util.Topic;
 import subscriber.SubscriberImpl;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 import javax.swing.*;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import publisher.Publisher;
 import subscriber.Subscriber;
 import topicmanager.TopicManager;
 import topicmanager.TopicManagerStub;
+import util.Subscription_close;
 
 public class SwingClient {
 
@@ -102,61 +105,87 @@ public class SwingClient {
     frame.setVisible(true);
   }
 
-  class showTopicsHandler implements ActionListener {
+    class showTopicsHandler implements ActionListener {
 
-    public void actionPerformed(ActionEvent e) {
-      
-      //...
-      
+        public void actionPerformed(ActionEvent e) {
+            java.util.List<Topic> arrayListTopics = topicManager.topics();
+            topic_list_TextArea.setText("");
+            for (Topic t : arrayListTopics) {
+                topic_list_TextArea.append(t.name + "\r\n");
+            }
+        }
     }
-  }
 
-  class newPublisherHandler implements ActionListener {
+    class newPublisherHandler implements ActionListener {
 
-    public void actionPerformed(ActionEvent e) {
-      
-      //...
-      
+        public void actionPerformed(ActionEvent e) {
+            String publisherTopicText = argument_TextField.getText();
+            Topic t = new Topic(publisherTopicText);
+            if (publisherTopic != null) {
+                topicManager.removePublisherFromTopic(publisherTopic);
+            }
+            publisher = topicManager.addPublisherToTopic(t);
+            publisherTopic = new Topic(argument_TextField.getText());
+            publisher_TextArea.setText(publisherTopicText);
+        }
     }
-  }
 
-  class newSubscriberHandler implements ActionListener {
+    class newSubscriberHandler implements ActionListener {
 
-    public void actionPerformed(ActionEvent e) {
-      
-      //...
-      
+        public void actionPerformed(ActionEvent e) {
+            SubscriberImpl subscriberImpl = new SubscriberImpl(SwingClient.this);
+            String subscriberTopicText = argument_TextField.getText();
+            Subscription_check subscription_check = topicManager.subscribe(new Topic(subscriberTopicText), subscriberImpl);
+            if (subscription_check.result == Subscription_check.Result.OKAY) {
+                my_subscriptions.put(subscription_check.topic, subscriberImpl);
+                messages_TextArea.append("Subscribe successful to: " + subscriberTopicText + "\r\n");
+            } else {
+                messages_TextArea.append("Impossible to subscribe to: " + subscriberTopicText + " Cause : " + subscription_check.result + "\r\n");
+            }
+            Iterator hmIterator = my_subscriptions.entrySet().iterator();
+            my_subscriptions_TextArea.setText("");
+            while (hmIterator.hasNext()) {
+                Map.Entry mapElement = (Map.Entry) hmIterator.next();
+                my_subscriptions_TextArea.append(((Topic) mapElement.getKey()).name + "\r\n");
+            }
+
+        }
     }
-  }
 
-  class UnsubscribeHandler implements ActionListener {
+    class UnsubscribeHandler implements ActionListener {
 
-    public void actionPerformed(ActionEvent e) {
-      
-      //...
-      
+        public void actionPerformed(ActionEvent e) {
+            String subscriberTopicText = argument_TextField.getText();
+            Topic t = new Topic(subscriberTopicText);
+
+            SubscriberImpl subscriberImpl = (SubscriberImpl) my_subscriptions.get(t);
+//            System.out.println("subscriberImpl : "+ subscriberImpl.toString());
+//            if (subscriberImpl != null) {
+//                subscriberImpl.onClose(new Subscription_close(new Topic(subscriberTopicText), Subscription_close.Cause.SUBSCRIBER));
+//            }
+
+            Subscription_check subscription_check = topicManager.unsubscribe(t, subscriberImpl);
+
+            my_subscriptions.remove(t);
+        }
     }
-  }
 
-  class postEventHandler implements ActionListener {
+    class postEventHandler implements ActionListener {
 
-    public void actionPerformed(ActionEvent e) {
-      
-      //...
-      
+        public void actionPerformed(ActionEvent e) {
+            String subscriberTopicText = argument_TextField.getText();
+            publisher.publish(new Message(publisherTopic, subscriberTopicText));
+            messages_TextArea.append(publisherTopic.name + ": " + subscriberTopicText + "\n");
+        }
     }
-  }
 
-  class CloseAppHandler implements ActionListener {
+    class CloseAppHandler implements ActionListener {
 
-    public void actionPerformed(ActionEvent e) {
-      
-      //...
-      
-      System.out.println("one user closed");
-      System.exit(0);
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("all users closed");
+            System.exit(0);
+        }
     }
-  }
 
   class CloseWindowHandler implements WindowListener {
 
